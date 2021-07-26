@@ -1,5 +1,6 @@
 const CKEditor = require("../models/CKEditor");
 const { v4: uuidV4 } = require("uuid");
+
 exports.handlePostData = async (req, res, next) => {
   try {
     const data = await CKEditor.create(req.body.data);
@@ -11,6 +12,7 @@ exports.handlePostData = async (req, res, next) => {
     }
     return res.json({
       sucesss: true,
+      data,
       message: "Successfully created",
     });
   } catch (err) {
@@ -41,13 +43,20 @@ exports.handleUploadImg = async (req, res, next) => {
 
 exports.getCKEditorData = async (req, res, next) => {
   try {
-    const data = await CKEditor.find();
+    const page = req.query.page * 1 || 1;
+    const limit = req.query.limit * 1 || 5;
+
+    const startIndex = (page - 1) * limit;
+    const totalRecords = await CKEditor.totalDocuments();
+    const data = await CKEditor.find({ startIndex, limit });
 
     return res.json({
       success: true,
       data,
+      totalRecords,
     });
   } catch (err) {
+    console.log(err);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",

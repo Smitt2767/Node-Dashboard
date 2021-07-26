@@ -14,12 +14,23 @@ CKEdiotr.create = (ckdata) =>
     });
   });
 
-CKEdiotr.find = () =>
+CKEdiotr.find = ({ startIndex, limit }) =>
   new Promise((resolve, reject) => {
-    const query = `select * from ckeditor`;
-    dbCon.query(query, (err, res) => {
+    const query = `select * from ckeditor limit ? , ?`;
+    data = [startIndex, limit];
+    dbCon.query(query, data, (err, res) => {
       if (err) reject(err);
       else resolve(res);
+    });
+  });
+
+CKEdiotr.totalDocuments = () =>
+  new Promise((resolve, reject) => {
+    const query = `select count(*) totalRecords from ckeditor`;
+
+    dbCon.query(query, (err, res) => {
+      if (err) reject(err);
+      else resolve(res[0].totalRecords);
     });
   });
 
