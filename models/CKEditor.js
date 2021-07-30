@@ -36,7 +36,7 @@ CKEdiotr.totalDocuments = () =>
 
 CKEdiotr.findByIdAndDelete = (id) =>
   new Promise((resolve, reject) => {
-    const query = `delete from ckeditor where id = ? `;
+    const query = `delete from ckeditor where ck_id = ? `;
     data = [id];
     dbCon.query(query, data, (err, res) => {
       if (err) reject(err);
@@ -45,7 +45,7 @@ CKEdiotr.findByIdAndDelete = (id) =>
   });
 CKEdiotr.findByIdAndUpdate = ({ id, data }) =>
   new Promise((resolve, reject) => {
-    const query = `update ckeditor set data = ? where id = ? `;
+    const query = `update ckeditor set data = ? where ck_id = ? `;
     data = [JSON.stringify(data), id];
     dbCon.query(query, data, (err, res) => {
       if (err) reject(err);
@@ -55,7 +55,7 @@ CKEdiotr.findByIdAndUpdate = ({ id, data }) =>
 
 CKEdiotr.findById = (id) =>
   new Promise((resolve, reject) => {
-    const query = `select * from ckeditor where id = ? `;
+    const query = `select * from ckeditor where ck_id = ? `;
     data = [id];
     dbCon.query(query, data, (err, res) => {
       if (err) reject(err);

@@ -8,14 +8,19 @@ const {
   handleGetDataById,
   handleUpdateDataById,
 } = require("../controllers/ckEditorController");
+const { protect } = require("../controllers/authController");
 
 router
   .route("/")
-  .post(handlePostData)
-  .get(getCKEditorData)
-  .delete(handleDelete);
-router.post("/uploadImg", handleUploadImg);
+  .post(protect, handlePostData)
+  .get(protect, getCKEditorData)
+  .delete(protect, handleDelete);
 
-router.route("/:id").get(handleGetDataById).put(handleUpdateDataById);
+router.post("/uploadImg", protect, handleUploadImg);
+
+router
+  .route("/:id")
+  .get(protect, handleGetDataById)
+  .put(protect, handleUpdateDataById);
 
 module.exports = router;

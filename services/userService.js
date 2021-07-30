@@ -2,6 +2,7 @@ let users = [];
 
 exports.addUser = ({ username, id }) => {
   users.push({ username, id });
+  console.log(users);
 };
 
 exports.getUsers = (id) => {
@@ -14,4 +15,5 @@ exports.getUserById = (id) => {
 
 exports.removeUser = (id) => {
   users = users.filter((user) => user.id !== id);
+  console.log(users);
 };

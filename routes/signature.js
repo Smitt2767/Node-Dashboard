@@ -3,8 +3,8 @@ const {
   createSignatureIntoExistingPdf,
   createSignatureIntoNewPdf,
 } = require("../controllers/signatureController");
-
-router.route("/").post(createSignatureIntoNewPdf);
-router.route("/existing").post(createSignatureIntoExistingPdf);
+const { protect } = require("../controllers/authController");
+router.route("/").post(protect, createSignatureIntoNewPdf);
+router.route("/existing").post(protect, createSignatureIntoExistingPdf);
 
 module.exports = router;

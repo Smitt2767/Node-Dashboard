@@ -88,6 +88,7 @@ exports.handleGetDataById = async (req, res, next) => {
       data: data[0],
     });
   } catch (err) {
+    console.log(err);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",

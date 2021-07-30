@@ -1,9 +1,10 @@
+require("dotenv").config();
 const express = require("express");
 const app = express();
 const fileUpload = require("express-fileupload");
 const socketIo = require("socket.io");
-const PORT = process.env.PORT || 3001;
 
+const cors = require("cors");
 // routes
 const ckEditorRoute = require("./routes/ckEditor");
 const signatureRoute = require("./routes/signature");
@@ -17,6 +18,10 @@ const {
   getUserById,
 } = require("./services/userService");
 
+const PORT = process.env.PORT || 3001;
+
+// Middlewares
+app.use(cors());
 app.use(express.json({ limit: 500000 }));
 app.use(express.static("public"));
 app.use(fileUpload());
@@ -61,10 +66,10 @@ io.on("connection", (socket) => {
     socket.to("chat").emit("typing", data);
   });
 
-  socket.on("disconnect", () => {
+  socket.on("leaveChatRoom", () => {
     const username = getUserById(socket.id)?.username;
-
     removeUser(socket.id);
+
     io.to("chat").emit("broadcast", {
       type: "USERS",
       users: getUsers(socket.id),
@@ -74,5 +79,24 @@ io.on("connection", (socket) => {
       message: `${username} has left!`,
       by: "admin",
     });
+
+    socket.leave("chat");
+  });
+
+  socket.on("disconnect", () => {
+    const username = getUserById(socket.id)?.username;
+
+    if (username) {
+      removeUser(socket.id);
+      io.to("chat").emit("broadcast", {
+        type: "USERS",
+        users: getUsers(socket.id),
+      });
+
+      socket.to("chat").emit("message", {
+        message: `${username} has left!`,
+        by: "admin",
+      });
+    }
   });
 });
