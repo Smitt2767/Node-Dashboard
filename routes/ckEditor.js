@@ -16,7 +16,7 @@ router
   .get(protect, getCKEditorData)
   .delete(protect, handleDelete);
 
-router.post("/uploadImg", protect, handleUploadImg);
+router.post("/uploadImg", handleUploadImg);
 
 router
   .route("/:id")

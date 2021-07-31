@@ -3,7 +3,7 @@ const { v4: uuidV4 } = require("uuid");
 
 exports.handlePostData = async (req, res, next) => {
   try {
-    const data = await CKEditor.create(req.body.data);
+    const data = await CKEditor.create(req.body.data, req.user.user_id);
     if (!data) {
       return res.status(500).json({
         success: false,
@@ -47,8 +47,13 @@ exports.getCKEditorData = async (req, res, next) => {
     const limit = req.query.limit * 1 || 5;
 
     const startIndex = (page - 1) * limit;
-    const totalRecords = await CKEditor.totalDocuments();
-    const data = await CKEditor.find({ startIndex, limit });
+    const totalRecords = await CKEditor.totalDocuments(req.user.user_id);
+
+    const data = await CKEditor.find({
+      startIndex,
+      limit,
+      user_id: req.user.user_id,
+    });
 
     return res.json({
       success: true,
@@ -66,6 +71,14 @@ exports.getCKEditorData = async (req, res, next) => {
 
 exports.handleDelete = async (req, res, next) => {
   try {
+    const record = await CKEditor.findById(req.body.id);
+    if (record && record.user_id !== req.user.user_id) {
+      return res.status(401).json({
+        sucess: false,
+        message: "Unauthorized user",
+      });
+    }
+
     const deletedData = await CKEditor.findByIdAndDelete(req.body.id);
     return res.json({
       sucesss: true,
@@ -73,6 +86,7 @@ exports.handleDelete = async (req, res, next) => {
       message: "Data deleted successfully",
     });
   } catch (err) {
+    console.log(err);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -83,9 +97,17 @@ exports.handleDelete = async (req, res, next) => {
 exports.handleGetDataById = async (req, res, next) => {
   try {
     const data = await CKEditor.findById(req.params.id * 1);
+
+    if (data && data.user_id !== req.user.user_id) {
+      return res.status(401).json({
+        sucess: false,
+        message: "Unauthorized user",
+      });
+    }
+
     return res.json({
       sucesss: true,
-      data: data[0],
+      data: data,
     });
   } catch (err) {
     console.log(err);
@@ -98,6 +120,15 @@ exports.handleGetDataById = async (req, res, next) => {
 
 exports.handleUpdateDataById = async (req, res, next) => {
   try {
+    const record = await CKEditor.findById(req.params.id * 1);
+
+    if (record && record.user_id !== req.user.user_id) {
+      return res.status(401).json({
+        sucess: false,
+        message: "Unauthorized user",
+      });
+    }
+
     const data = await CKEditor.findByIdAndUpdate({
       id: req.params.id * 1,
       data: req.body.data,
