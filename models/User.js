@@ -9,7 +9,7 @@ const hashPassword = async (password) => {
 
 User.find = ({ user_id, startIndex, limit }) =>
   new Promise((resolve, reject) => {
-    const query = `select user_id, username, email, active, gender, avatar, last_message, last_active from users where user_id != ? limit ?, ?`;
+    const query = `select user_id, username, email, active, gender, avatar, last_active from users where user_id != ? limit ?, ?`;
     const data = [user_id, startIndex, limit];
 
     dbCon.query(query, data, (err, res) => {
@@ -66,6 +66,31 @@ User.totalDocuments = () =>
   new Promise((resolve, reject) => {
     const query = `select count(*) totalRecords from users`;
     dbCon.query(query, (err, res) => {
+      if (err) reject(err);
+      else resolve(res[0].totalRecords);
+    });
+  });
+
+User.getUserMessages = (fromId, toId, startIndex, limit) =>
+  new Promise((resolve, reject) => {
+    const query = `select *, case when from_user = ? then true else false end as by_me 
+          from messages 
+          where (from_user = ? or from_user = ?) and (to_user = ? or to_user = ?) and isDeleted = 0
+          order by message_id desc 
+          limit ?, ? `;
+    const data = [fromId, fromId, toId, fromId, toId, startIndex, limit];
+
+    dbCon.query(query, data, (err, res) => {
+      if (err) reject(err);
+      else resolve(res);
+    });
+  });
+
+User.totalUserMessages = (fromId, toId) =>
+  new Promise((resolve, reject) => {
+    const query = `select count(*) as totalRecords from messages where (from_user = ? or from_user = ?) and (to_user = ? or to_user = ?) and isDeleted = 0`;
+    const data = [fromId, toId, fromId, toId];
+    dbCon.query(query, data, (err, res) => {
       if (err) reject(err);
       else resolve(res[0].totalRecords);
     });
