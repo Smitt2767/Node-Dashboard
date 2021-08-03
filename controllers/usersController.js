@@ -7,11 +7,13 @@ exports.getUsers = async (req, res, next) => {
 
     const startIndex = (page - 1) * limit;
     const totalRecords = await User.totalDocuments();
+    const search = `%${req.query.search}%`;
 
     const users = await User.find({
       startIndex,
       limit,
       user_id: req.user.user_id,
+      search,
     });
 
     return res.json({

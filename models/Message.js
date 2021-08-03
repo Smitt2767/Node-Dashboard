@@ -2,10 +2,16 @@ const dbCon = require("../config/db.config");
 
 const Message = function () {};
 
-Message.create = ({ text, type = "text", from_user, to_user }) =>
+Message.create = ({
+  text,
+  type = "text",
+  from_user,
+  to_user,
+  replyOf = null,
+}) =>
   new Promise((resolve, reject) => {
-    const query = `insert into messages (text, type, from_user, to_user ) values(?,?,?,?)`;
-    const data = [text, type, from_user, to_user];
+    const query = `insert into messages (text, type, from_user, to_user, replyOf ) values(?,?,?,?, ?)`;
+    const data = [text, type, from_user, to_user, replyOf];
 
     dbCon.query(query, data, (err, res) => {
       if (err) return reject(err);
@@ -15,7 +21,10 @@ Message.create = ({ text, type = "text", from_user, to_user }) =>
 
 Message.findById = (id) =>
   new Promise((resolve, reject) => {
-    const query = `select * from messages where message_id = ?`;
+    const query = `select *,
+                  (select text from messages rm where message_id = m.replyOf ) as replyText 
+                  from messages m where message_id = ?`;
+
     const data = [id];
 
     dbCon.query(query, data, (err, res) => {

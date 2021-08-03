@@ -7,10 +7,14 @@ const hashPassword = async (password) => {
   return await bcrypt.hash(password, 10);
 };
 
-User.find = ({ user_id, startIndex, limit }) =>
+User.find = ({ user_id, startIndex, limit, search }) =>
   new Promise((resolve, reject) => {
-    const query = `select user_id, username, email, active, gender, avatar, last_active from users where user_id != ? limit ?, ?`;
-    const data = [user_id, startIndex, limit];
+    const query = `select user_id, username, email, active, gender, avatar, last_active from users 
+                where user_id != ? 
+               and username like ?
+                limit ?, ?`;
+
+    const data = [user_id, search, startIndex, limit];
 
     dbCon.query(query, data, (err, res) => {
       if (err) return reject(err);
@@ -73,8 +77,10 @@ User.totalDocuments = () =>
 
 User.getUserMessages = (fromId, toId, startIndex, limit) =>
   new Promise((resolve, reject) => {
-    const query = `select *, case when from_user = ? then true else false end as by_me 
-          from messages 
+    const query = `select *,
+          case when from_user = ? then true else false end as by_me,
+          (select text from messages rm where message_id = m.replyOf ) as replyText
+          from messages m
           where (from_user = ? or from_user = ?) and (to_user = ? or to_user = ?) and isDeleted = 0
           order by message_id desc 
           limit ?, ? `;

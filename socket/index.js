@@ -58,10 +58,12 @@ io.on("connection", async (socket) => {
 
   socket.on("sendMessageToUser", async (data, cb) => {
     try {
+      console.log(data);
       const newMessage = await Message.create({
         text: data.message,
         from_user: userId,
         to_user: data.to_user,
+        replyOf: data.replyOf,
       });
       const message = await Message.findById(newMessage.insertId);
       const toUser = getConnectedUserByUserId(data.to_user);
