@@ -10,7 +10,7 @@ Message.create = ({
   replyOf = null,
 }) =>
   new Promise((resolve, reject) => {
-    const query = `insert into messages (text, type, from_user, to_user, replyOf ) values(?,?,?,?, ?)`;
+    const query = `insert into messages (text, type, from_user, to_user, replyOf ) values(?,?,?,?,?)`;
     const data = [text, type, from_user, to_user, replyOf];
 
     dbCon.query(query, data, (err, res) => {
@@ -22,7 +22,7 @@ Message.create = ({
 Message.findById = (id) =>
   new Promise((resolve, reject) => {
     const query = `select *,
-                  (select text from messages rm where message_id = m.replyOf ) as replyText 
+                  (select text from messages rm where message_id = m.replyOf ) as replyText
                   from messages m where message_id = ?`;
 
     const data = [id];

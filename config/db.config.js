@@ -5,6 +5,7 @@ const dbCon = mysql.createConnection({
   user: "root",
   password: "password",
   database: "dashboard",
+  multipleStatements: true,
 });
 
 dbCon.connect((err) => {

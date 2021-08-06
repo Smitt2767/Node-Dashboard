@@ -1,5 +1,5 @@
 const { io } = require("../server");
-
+const { app } = require("../server");
 const jwt = require("jsonwebtoken");
 
 // models
@@ -50,7 +50,7 @@ io.of("/").use(async (socket, next) => {
 
 io.on("connection", async (socket) => {
   const userId = getConnectedUserBySocketId(socket.id)?.userId;
-
+  SOCKET = socket;
   socket.broadcast.emit("broadcast-user", {
     type: "ONLINE",
     userId,
@@ -58,7 +58,6 @@ io.on("connection", async (socket) => {
 
   socket.on("sendMessageToUser", async (data, cb) => {
     try {
-      console.log(data);
       const newMessage = await Message.create({
         text: data.message,
         from_user: userId,

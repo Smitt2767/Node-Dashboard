@@ -6,6 +6,8 @@ const socketIo = require("socket.io");
 
 const cors = require("cors");
 
+const { setRooms } = require("./services/roomService");
+
 const PORT = process.env.PORT || 3001;
 
 // Middlewares
@@ -27,6 +29,9 @@ const io = socketIo(server, {
     methods: ["GET", "POST"],
   },
 });
+
+app.set("socketIo", io);
+setRooms();
 
 module.exports = {
   app,

@@ -17,3 +17,7 @@ exports.getConnectedUserBySocketId = (id) => {
 exports.getConnectedUserByUserId = (id) => {
   return connectedUsers.find((user) => user.userId === id);
 };
+
+exports.getConnectedUsers = () => {
+  return connectedUsers;
+};
