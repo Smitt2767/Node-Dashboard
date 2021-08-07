@@ -2,15 +2,6 @@ const dbCon = require("../config/db.config");
 
 const Room = function () {};
 
-Room.findForService = () =>
-  new Promise((resolve, reject) => {
-    const query = `select * from rooms`;
-    dbCon.query(query, (err, res) => {
-      if (err) return reject(err);
-      else resolve(res);
-    });
-  });
-
 Room.totalDocuments = () =>
   new Promise((resolve, reject) => {
     const query = `select count(*) as totalRecords from rooms `;
@@ -32,6 +23,23 @@ Room.find = ({ startIndex, limit, search, user_id }) =>
     limit ?, ?`;
 
     const data = [user_id, user_id, search, startIndex, limit];
+
+    dbCon.query(query, data, (err, res) => {
+      if (err) return reject(err);
+      else resolve(res);
+    });
+  });
+
+Room.findAllUserRooms = (user_id) =>
+  new Promise((resolve, reject) => {
+    const query = `select room_id, roomname
+    from rooms r 
+    left join rooms_users ru using(room_id) 
+    left join users u using(user_id) 
+    where ru.user_id = ?
+    order by room_id desc`;
+
+    const data = [user_id];
 
     dbCon.query(query, data, (err, res) => {
       if (err) return reject(err);
@@ -157,6 +165,58 @@ Room.totalRoomMessages = (roomId) =>
     dbCon.query(query, data, (err, res) => {
       if (err) return reject(err);
       else resolve(res[0].totalRecords);
+    });
+  });
+
+Room.createNewMessage = ({
+  userId,
+  roomId,
+  message,
+  type = "text",
+  replyOf = null,
+}) =>
+  new Promise((resolve, reject) => {
+    const query = `insert into room_messages values (default, ?, ?, default, default, default, ?, ?, ? )`;
+    const data = [message, type, replyOf, roomId, userId];
+
+    dbCon.query(query, data, (err, res) => {
+      if (err) return reject(err);
+      else resolve(res);
+    });
+  });
+
+Room.getMessageById = (id) =>
+  new Promise((resolve, reject) => {
+    const query = `select message_id, text, type, isEdited, created_at, replyOf, 
+    (select username from users where user_id = rm.from_user) as username, from_user,
+    (select text from room_messages where message_id = rm.replyOf ) as replyText
+    from room_messages rm where message_id = ?`;
+
+    const data = [id];
+    dbCon.query(query, data, (err, res) => {
+      if (err) return reject(err);
+      else resolve(res);
+    });
+  });
+
+Room.deleteMessage = (message_id) =>
+  new Promise((resolve, reject) => {
+    const query = `update room_messages set isDeleted = 1 where message_id = ?`;
+    const data = [message_id];
+    dbCon.query(query, data, (err, res) => {
+      if (err) return reject(err);
+      else resolve(res);
+    });
+  });
+
+Room.updateMessage = ({ message_id, message }) =>
+  new Promise((resolve, reject) => {
+    const query = `update room_messages set text = ?, isEdited = 1 where message_id = ?`;
+    const data = [message, message_id];
+
+    dbCon.query(query, data, (err, res) => {
+      if (err) return reject(err);
+      else resolve(res);
     });
   });
 

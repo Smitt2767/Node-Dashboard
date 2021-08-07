@@ -1,11 +1,10 @@
 const { io } = require("../server");
-const { app } = require("../server");
 const jwt = require("jsonwebtoken");
 
 // models
 const User = require("../models/User");
 const Message = require("../models/Message");
-
+const Room = require("../models/Room");
 // services
 const {
   addUser,
@@ -50,11 +49,18 @@ io.of("/").use(async (socket, next) => {
 
 io.on("connection", async (socket) => {
   const userId = getConnectedUserBySocketId(socket.id)?.userId;
-  SOCKET = socket;
   socket.broadcast.emit("broadcast-user", {
     type: "ONLINE",
     userId,
   });
+  try {
+    const usersRooms = await Room.findAllUserRooms(userId);
+    usersRooms.forEach((room) => {
+      socket.join(`#room_${room.room_id}`);
+    });
+  } catch (err) {
+    io.to(socket.id).emit("ERROR", "Something went wrong!!!");
+  }
 
   socket.on("sendMessageToUser", async (data, cb) => {
     try {
@@ -139,6 +145,72 @@ io.on("connection", async (socket) => {
       }
 
       cb();
+    } catch (err) {
+      console.log(err);
+      io.to(socket.id).emit("ERROR", "Invalid data");
+    }
+  });
+
+  // Rooms
+  socket.on("join", (room_id) => {
+    socket.join(`#room_${room_id}`);
+  });
+
+  socket.on("leave", (room_id) => {
+    socket.leave(`#room_${room_id}`);
+  });
+
+  socket.on("room_new_message", async (data, cb) => {
+    try {
+      const newMessage = await Room.createNewMessage({
+        userId,
+        roomId: data.room_id,
+        message: data.message,
+        replyOf: data.replyOf,
+      });
+      const message = await Room.getMessageById(newMessage.insertId);
+
+      socket.to(`#room_${data.room_id}`).emit("room_new_message", {
+        message: { ...message[0], by_me: 0 },
+        roomId: data.room_id,
+      });
+
+      cb({
+        message: { ...message[0], by_me: 1 },
+        roomId: data.room_id,
+      });
+    } catch (err) {
+      console.log(err);
+      io.to(socket.id).emit("ERROR", "Invalid data");
+    }
+  });
+
+  socket.on("who_is_typing", (room_id) => {
+    const username = getConnectedUserByUserId(userId)?.username;
+
+    socket.to(`#room_${room_id}`).emit("who_is_typing", { username, room_id });
+  });
+
+  socket.on("deleteRoomMessage", async ({ message_id, room_id }) => {
+    try {
+      await Room.deleteMessage(message_id);
+      io.to(`#room_${room_id}`).emit("deleteRoomMessage", {
+        message_id,
+        room_id,
+      });
+    } catch (err) {
+      io.to(socket.id).emit("ERROR", "Invalid data");
+    }
+  });
+
+  socket.on("updateRoomMessage", async ({ room_id, message_id, message }) => {
+    try {
+      await Room.updateMessage({ message_id, message });
+      io.to(`#room_${room_id}`).emit("updateRoomMessage", {
+        message_id,
+        room_id,
+        message,
+      });
     } catch (err) {
       console.log(err);
       io.to(socket.id).emit("ERROR", "Invalid data");
