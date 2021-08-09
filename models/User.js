@@ -10,8 +10,10 @@ const hashPassword = async (password) => {
 User.find = ({ user_id, startIndex, limit, search }) =>
   new Promise((resolve, reject) => {
     const query = `select user_id, username, email, active, gender, avatar, last_active, 
-                  (select m.text from messages m where (from_user = ? or to_user = ?) and (from_user = user_id or to_user = user_id) and isDeleted <> 1 order by message_id desc limit 1) as last_message, 
-                  (select count(case when isRead = 0 then isRead end) from messages where from_user = user_id and to_user = ? and isDeleted <> 1) as totalUnRead
+                  (select m.text from messages m where (from_user = ? or to_user = ?) and (from_user = user_id or to_user = user_id)
+                   and isDeleted <> 1 order by message_id desc limit 1) as last_message, 
+                  (select count(case when isRead = 0 then isRead end) from messages where from_user = user_id and to_user = ? and isDeleted <> 1) 
+                  as totalUnRead
                   from users u 
                   where user_id != ? 
                   and username like ?

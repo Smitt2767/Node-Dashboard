@@ -13,7 +13,8 @@ Room.totalDocuments = () =>
 
 Room.find = ({ startIndex, limit, search, user_id }) =>
   new Promise((resolve, reject) => {
-    const query = `select room_id, roomname, case when owner_id = ? then true else false end as isAdmin
+    const query = `select room_id, roomname, case when owner_id = ? then true else false end as isAdmin, 
+    (select text from room_messages where room_id = r.room_id and isDeleted <> 1 order by message_id desc limit 1) as last_message
     from rooms r 
     left join rooms_users ru using(room_id) 
     left join users u using(user_id) 
@@ -144,7 +145,8 @@ Room.updateRoomOwner = (roomId) =>
 
 Room.getRoomMessagesById = (userId, roomId, startIndex, limit) =>
   new Promise((resolve, reject) => {
-    const query = `select rm.message_id, rm.text, rm.type, rm.isEdited, rm.created_at, rm.replyOf, u.username, case when u.user_id = ? then true else false end as by_me,
+    const query = `select rm.message_id, rm.text, rm.type, rm.isEdited, rm.created_at, rm.replyOf, u.username,
+     case when u.user_id = ? then true else false end as by_me,
     (select text from room_messages irm where irm.message_id = rm.replyOf ) as replyText
     from rooms r left join room_messages rm using(room_id) left join users u on u.user_id = rm.from_user where room_id = ? and rm.isDeleted = 0 
     order by rm.message_id desc limit ?, ?`;

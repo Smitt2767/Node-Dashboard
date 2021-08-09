@@ -118,38 +118,50 @@ io.on("connection", async (socket) => {
     }
   });
 
-  socket.on("deleteMessage", async ({ messageId, receiverId }, cb) => {
-    try {
-      await Message.findByIdAndDelete(messageId);
-      const receiver = getConnectedUserByUserId(receiverId);
-      if (!!receiver) {
-        socket
-          .to(receiver.socketId)
-          .emit("deleteMessage", { messageId, senderId: userId });
+  socket.on(
+    "deleteMessage",
+    async ({ messageId, receiverId, isLast, lastMessage }, cb) => {
+      try {
+        await Message.findByIdAndDelete(messageId);
+        const receiver = getConnectedUserByUserId(receiverId);
+        if (!!receiver) {
+          socket.to(receiver.socketId).emit("deleteMessage", {
+            messageId,
+            senderId: userId,
+            isLast,
+            lastMessage,
+          });
+        }
+
+        cb();
+      } catch (err) {
+        io.to(socket.id).emit("ERROR", "Invalid data");
       }
-
-      cb();
-    } catch (err) {
-      io.to(socket.id).emit("ERROR", "Invalid data");
     }
-  });
+  );
 
-  socket.on("updateMessage", async ({ receiverId, message, messageId }, cb) => {
-    try {
-      await Message.findByIdAndUpdateText(message, messageId);
-      const receiver = getConnectedUserByUserId(receiverId);
-      if (!!receiver) {
-        socket
-          .to(receiver.socketId)
-          .emit("updateMessage", { messageId, message, senderId: userId });
+  socket.on(
+    "updateMessage",
+    async ({ receiverId, message, messageId, isLast }, cb) => {
+      try {
+        await Message.findByIdAndUpdateText(message, messageId);
+        const receiver = getConnectedUserByUserId(receiverId);
+        if (!!receiver) {
+          socket.to(receiver.socketId).emit("updateMessage", {
+            messageId,
+            message,
+            senderId: userId,
+            isLast,
+          });
+        }
+
+        cb();
+      } catch (err) {
+        console.log(err);
+        io.to(socket.id).emit("ERROR", "Invalid data");
       }
-
-      cb();
-    } catch (err) {
-      console.log(err);
-      io.to(socket.id).emit("ERROR", "Invalid data");
     }
-  });
+  );
 
   // Rooms
   socket.on("join", (room_id) => {
@@ -191,31 +203,40 @@ io.on("connection", async (socket) => {
     socket.to(`#room_${room_id}`).emit("who_is_typing", { username, room_id });
   });
 
-  socket.on("deleteRoomMessage", async ({ message_id, room_id }) => {
-    try {
-      await Room.deleteMessage(message_id);
-      io.to(`#room_${room_id}`).emit("deleteRoomMessage", {
-        message_id,
-        room_id,
-      });
-    } catch (err) {
-      io.to(socket.id).emit("ERROR", "Invalid data");
+  socket.on(
+    "deleteRoomMessage",
+    async ({ message_id, room_id, isLast, last_message }) => {
+      try {
+        await Room.deleteMessage(message_id);
+        io.to(`#room_${room_id}`).emit("deleteRoomMessage", {
+          message_id,
+          room_id,
+          isLast,
+          last_message,
+        });
+      } catch (err) {
+        io.to(socket.id).emit("ERROR", "Invalid data");
+      }
     }
-  });
+  );
 
-  socket.on("updateRoomMessage", async ({ room_id, message_id, message }) => {
-    try {
-      await Room.updateMessage({ message_id, message });
-      io.to(`#room_${room_id}`).emit("updateRoomMessage", {
-        message_id,
-        room_id,
-        message,
-      });
-    } catch (err) {
-      console.log(err);
-      io.to(socket.id).emit("ERROR", "Invalid data");
+  socket.on(
+    "updateRoomMessage",
+    async ({ room_id, message_id, message, isLast }) => {
+      try {
+        await Room.updateMessage({ message_id, message });
+        io.to(`#room_${room_id}`).emit("updateRoomMessage", {
+          message_id,
+          room_id,
+          message,
+          isLast,
+        });
+      } catch (err) {
+        console.log(err);
+        io.to(socket.id).emit("ERROR", "Invalid data");
+      }
     }
-  });
+  );
 
   socket.on("disconnect", async () => {
     try {
