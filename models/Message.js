@@ -22,7 +22,8 @@ Message.create = ({
 Message.findById = (id) =>
   new Promise((resolve, reject) => {
     const query = `select *,
-                  (select text from messages rm where message_id = m.replyOf ) as replyText
+                  (select text from messages rm where message_id = m.replyOf ) as replyText,
+                  (select concat('[', group_concat(JSON_OBJECT('file_id', file_id, 'name', name, 'path', path,'size', size, 'type', type)) , ']') from files f where f.message_id = m.message_id group by message_id) as files
                   from messages m where message_id = ?`;
 
     const data = [id];
@@ -69,6 +70,16 @@ Message.findByIdAndUpdateText = (text, messageId) =>
     const query = `update messages set text = ?, isEdited = 1 where message_id = ?`;
     const data = [text, messageId];
     dbCon.query(query, data, (err, res) => {
+      if (err) return reject(err);
+      else resolve(res);
+    });
+  });
+
+Message.createFile = (filesData) =>
+  new Promise((resolve, reject) => {
+    const query = `insert into files (name, path, size, type, message_id) values ?`;
+
+    dbCon.query(query, [filesData], (err, res) => {
       if (err) return reject(err);
       else resolve(res);
     });

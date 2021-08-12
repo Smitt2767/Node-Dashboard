@@ -74,10 +74,13 @@ io.on("connection", async (socket) => {
       const toUser = getConnectedUserByUserId(data.to_user);
 
       if (toUser) {
-        io.to(toUser.socketId).emit("sendMessageToUser", message);
+        io.to(toUser.socketId).emit("sendMessageToUser", {
+          ...message,
+          by_me: 0,
+        });
       }
 
-      cb(message);
+      cb({ ...message, by_me: 1 });
     } catch (err) {
       console.log(err);
       io.to(socket.id).emit("ERROR", "Invalid data");
