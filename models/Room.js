@@ -71,7 +71,7 @@ Room.roomsUsersCreate = (data) =>
 
 Room.findRoomInfoByRoomId = (roomId) =>
   new Promise((resolve, reject) => {
-    const query = `select username, user_id, case when owner_id = user_id then true else false end as isAdmin, active
+    const query = `select username, user_id, avatar, case when owner_id = user_id then true else false end as isAdmin, active
     from rooms left join rooms_users using(room_id) left join users using(user_id) where room_id = ?`;
     const data = [roomId];
     dbCon.query(query, [data], (err, res) => {

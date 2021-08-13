@@ -37,7 +37,7 @@ User.find = ({ user_id, startIndex, limit, search }) =>
 
 User.findById = (id) =>
   new Promise((resolve, reject) => {
-    const query = `select * from users where user_id = ?`;
+    const query = `select user_id, username, email, active, last_active, mobile_number, address, address2, city, state, zipcode, gender, avatar from users where user_id = ?`;
     const data = [id];
 
     dbCon.query(query, data, (err, res) => {
@@ -119,6 +119,57 @@ User.totalUserMessages = (fromId, toId) =>
     dbCon.query(query, data, (err, res) => {
       if (err) reject(err);
       else resolve(res[0].totalRecords);
+    });
+  });
+
+User.finfByIdAndUpdateAvatar = (userId, avatar) =>
+  new Promise((resolve, reject) => {
+    const query = `update users set avatar = ? where user_id = ?`;
+    const data = [avatar, userId];
+    dbCon.query(query, data, (err, res) => {
+      if (err) reject(err);
+      else resolve(res);
+    });
+  });
+
+User.findByIdAndUpdateProfile = ({
+  username,
+  email,
+  mobile_number,
+  gender,
+  address,
+  address2,
+  city,
+  state,
+  zipcode,
+  userId,
+}) =>
+  new Promise((resolve, reject) => {
+    const query = `update users set username = ?, 
+                  email = ?, 
+                  mobile_number = ?, 
+                  gender = ?, 
+                  address = ?, 
+                  address2 = ?, 
+                  city = ?,
+                  state = ?, 
+                  zipcode = ?
+                  where user_id = ?`;
+    const data = [
+      username,
+      email,
+      mobile_number,
+      gender,
+      address,
+      address2,
+      city,
+      state,
+      zipcode,
+      userId,
+    ];
+    dbCon.query(query, data, (err, res) => {
+      if (err) reject(err);
+      else resolve(res);
     });
   });
 

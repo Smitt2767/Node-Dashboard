@@ -3,6 +3,7 @@ const Message = require("../models/Message");
 const {
   getConnectedUserByUserId,
 } = require("../services/privateChatUserService");
+
 exports.saveAndSendFiles = async (req, res) => {
   try {
     let files = [];
@@ -32,6 +33,7 @@ exports.saveAndSendFiles = async (req, res) => {
     }
 
     const message_id = newMessage.insertId;
+
     files.forEach(async (file) => {
       const name = file.name;
       const path = `${uuidV4()}_${file.name}`;
