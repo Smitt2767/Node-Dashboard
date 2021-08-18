@@ -16,8 +16,12 @@ Olympic.find = ({ sort, order, start, limit, where }) =>
   new Promise((resolve, reject) => {
     const query = `select * from  olympic ${
       where ? `where ${where}` : ""
-    } order by ${sort} ${order} limit ?, ?`;
-    const data = [start, limit];
+    } order by ${sort} ${order} ${
+      start !== undefined && limit !== undefined ? "limit ?, ?" : ""
+    }`;
+    const data =
+      start !== undefined && limit !== undefined ? [start, limit] : [];
+
     dbCon.query(query, data, (err, res) => {
       if (err) return reject(err);
       else resolve(res);

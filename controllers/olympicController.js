@@ -1,5 +1,9 @@
 const Olympic = require("../models/Olympic");
 // const data = require("../db.json").olympic;
+const XLSX = require("xlsx");
+const jsonToHTMLTable = require("../utils/jsonToHTMLTable");
+const pdf = require("html-pdf");
+const moment = require("moment");
 
 const getWhereForTextType = (filter, filterKey) => {
   let where = "";
@@ -59,6 +63,52 @@ const getWhereForDateType = (filter, filterKey) => {
   return where;
 };
 
+const generateWhere = (filters) => {
+  let where = "";
+  Object.keys(filters).forEach((filter, i) => {
+    if (filters[filter].filterType === "text") {
+      if (!!!filters[filter].operator) {
+        where += getWhereForTextType(filters[filter], filter);
+      } else {
+        where += `(${getWhereForTextType(filters[filter].condition1, filter)}${
+          filters[filter].operator
+        } ${getWhereForTextType(filters[filter].condition2, filter)}) `;
+      }
+    } else if (filters[filter].filterType === "number") {
+      if (!!!filters[filter].operator) {
+        where += getWhereForNumberType(
+          filters[filter],
+          `${filter !== "total" ? filter : "(gold + silver + bronze)"}`
+        );
+      } else {
+        where += `(${getWhereForNumberType(
+          filters[filter].condition1,
+          `${filter !== "total" ? filter : "(gold + silver + bronze)"}`
+        )}${filters[filter].operator} ${getWhereForNumberType(
+          filters[filter].condition2,
+          `${filter !== "total" ? filter : "(gold + silver + bronze)"}`
+        )}) `;
+      }
+    } else if (filters[filter].filterType === "date") {
+      if (!!!filters[filter].operator) {
+        where += getWhereForDateType(filters[filter], filter);
+      } else {
+        where += `(${getWhereForDateType(filters[filter].condition1, filter)}${
+          filters[filter].operator
+        } ${getWhereForDateType(filters[filter].condition2, filter)}) `;
+      }
+    }
+    if (
+      Object.keys(filters).length > 0 &&
+      i !== Object.keys(filters).length - 1 &&
+      where
+    )
+      where += "and ";
+  });
+
+  return where;
+};
+
 exports.getData = async (req, res) => {
   try {
     const start = req.query.start * 1 || 0;
@@ -70,60 +120,9 @@ exports.getData = async (req, res) => {
       : "id";
     const order = req.query.order || "asc";
 
-    let where = "";
-
     const filters = JSON.parse(req.query.filter);
 
-    Object.keys(filters).forEach((filter, i) => {
-      if (filters[filter].filterType === "text") {
-        if (!!!filters[filter].operator) {
-          where += getWhereForTextType(filters[filter], filter);
-        } else {
-          where += `(${getWhereForTextType(
-            filters[filter].condition1,
-            filter
-          )}${filters[filter].operator} ${getWhereForTextType(
-            filters[filter].condition2,
-            filter
-          )}) `;
-        }
-      } else if (filters[filter].filterType === "number") {
-        if (!!!filters[filter].operator) {
-          where += getWhereForNumberType(
-            filters[filter],
-            `${filter !== "total" ? filter : "(gold + silver + bronze)"}`
-          );
-        } else {
-          where += `(${getWhereForNumberType(
-            filters[filter].condition1,
-            `${filter !== "total" ? filter : "(gold + silver + bronze)"}`
-          )}${filters[filter].operator} ${getWhereForNumberType(
-            filters[filter].condition2,
-            `${filter !== "total" ? filter : "(gold + silver + bronze)"}`
-          )}) `;
-        }
-      } else if (filters[filter].filterType === "date") {
-        if (!!!filters[filter].operator) {
-          where += getWhereForDateType(filters[filter], filter);
-        } else {
-          where += `(${getWhereForDateType(
-            filters[filter].condition1,
-            filter
-          )}${filters[filter].operator} ${getWhereForDateType(
-            filters[filter].condition2,
-            filter
-          )}) `;
-        }
-      }
-      if (
-        Object.keys(filters).length > 0 &&
-        i !== Object.keys(filters).length - 1 &&
-        where
-      )
-        where += "and ";
-    });
-
-    console.log(where);
+    const where = generateWhere(filters);
 
     const totalRecords = await Olympic.totalRecords(where);
     const data = await Olympic.find({ start, limit, sort, order, where });
@@ -158,6 +157,124 @@ exports.create = async (req, res) => {
 
     return res.json({
       sucess: true,
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+exports.generateXlsx = async (req, res, next) => {
+  try {
+    const sort = req.query.sort
+      ? req.query.sort !== "total"
+        ? req.query.sort
+        : "(gold + silver + bronze)"
+      : "id";
+    const order = req.query.order || "asc";
+
+    const filters = JSON.parse(req.query.filter);
+
+    const where = generateWhere(filters);
+
+    const data = await Olympic.find({ sort, order, where });
+
+    var ws = XLSX.utils.json_to_sheet(
+      data.map((rec) => {
+        return {
+          ...rec,
+          date: moment(rec.date).format("DD/MM/YYYY"),
+          total: rec.gold + rec.silver + rec.bronze,
+        };
+      })
+    );
+
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Olympic");
+    var buffer = XLSX.write(wb, {
+      bookType: "xlsx",
+      bookSST: false,
+      type: "base64",
+    });
+
+    return res.send(new Buffer.from(buffer, "base64"));
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+exports.generatePdfTable = async (req, res, next) => {
+  try {
+    const sort = req.query.sort
+      ? req.query.sort !== "total"
+        ? req.query.sort
+        : "(gold + silver + bronze)"
+      : "id";
+    const order = req.query.order || "asc";
+
+    const filters = JSON.parse(req.query.filter);
+
+    const where = generateWhere(filters);
+
+    const data = await Olympic.find({ sort, order, where });
+
+    const html = jsonToHTMLTable({
+      tableName: "Olympic",
+      head: [
+        "id",
+        "athlete",
+        "age",
+        "country",
+        "year",
+        "date",
+        "sport",
+        "gold",
+        "silver",
+        "bronze",
+        "total",
+      ],
+      body: data.map((rec) => {
+        return {
+          ...rec,
+          date: moment(rec.date).format("DD/MM/YYYY"),
+          total: rec.gold + rec.silver + rec.bronze,
+        };
+      }),
+    });
+
+    const config = {
+      border: {
+        top: "0.3in",
+        right: "0.2in",
+        left: "0.2in",
+        bottom: "0.3in",
+      },
+      header: {
+        height: "20mm",
+      },
+      footer: {
+        height: "10mm",
+        contents: {
+          default: "<span>{{page}}</span>/<span>{{pages}}</span>",
+        },
+      },
+    };
+
+    pdf.create(html, config).toBuffer(function (err, buffer) {
+      if (err) {
+        return res.status(500).json({
+          sucess: false,
+          message: "something went wrong",
+        });
+      }
+      return res.send(new Buffer.from(buffer, "base64"));
     });
   } catch (err) {
     console.log(err);
