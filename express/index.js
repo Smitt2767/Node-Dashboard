@@ -7,6 +7,7 @@ const userRoute = require("../routes/users");
 const roomsRoute = require("../routes/rooms");
 const chatRoute = require("../routes/chat");
 const olympicRoute = require("../routes/olympic");
+const ccRoute = require("../routes/cc");
 // Routes
 app.use("/ck", ckEditorRoute);
 app.use("/signature", signatureRoute);
@@ -15,3 +16,4 @@ app.use("/users", userRoute);
 app.use("/rooms", roomsRoute);
 app.use("/chat", chatRoute);
 app.use("/olympic", olympicRoute);
+app.use("/cc", ccRoute);
